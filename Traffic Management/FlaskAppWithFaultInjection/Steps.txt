@@ -1,0 +1,68 @@
+Steps 2
+
+- Create cluster 
+
+- Go to the correct configuration folder
+
+- Connect to the cluster
+gcloud container clusters get-credentials cluster-3 --zone us-central1-c --project istio-327218
+
+- Grant cluster administrator (admin) permissions to the current user
+kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account)
+
+- Download and install Istio
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-1.11.3
+export PATH=$PWD/bin:$PATH
+istioctl install --set profile=demo -y
+
+- Create namespace 
+kubectl create namespace canary-test
+
+- Add a namespace label to instruct Istio to automatically inject Envoy sidecar proxies when you deploy your application later:
+kubectl label namespace canary-test istio-injection=enabled
+
+- Deploy your application
+kubectl apply -f ../application.yaml
+
+kubectl get pods
+kubectl get deploy
+kubectl get svc
+kubectl get serviceaccount
+
+- Expose your application
+kubectl apply -f ../gateway.yaml
+
+kubectl get gateway
+kubectl get vs
+
+- Check configurations
+istioctl analyze -n canry-test
+
+- Access the application from the browser
+kubectl get svc istio-ingressgateway -n istio-system
+
+- Install prometheus
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.11/samples/addons/prometheus.yaml
+
+- Install grafana
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.11/samples/addons/grafana.yaml
+
+- Install flagger
+kubectl apply -k github.com/fluxcd/flagger//kustomize/istio
+
+- Deploy canary
+kubectl apply -f ../canary.yaml
+
+- Wait until canary is initialized 
+kubectl get pods -n istio-system 
+kubectl logs -f flagger-79c495b945-zqmvs -n istio-system
+
+- Access the application from the browser
+
+- Trigger a canary deployment
+kubectl set image deployment/flask-app flask-app=waiyanwinhtain/canary-flask-app:v2 -n canary-test
+
+- Wait until canary is deployed with the correct weight 
+kubectl logs -f flagger-79c495b945-zqmvs -n istio-system
+ 
